@@ -17,6 +17,8 @@ import {
   FaSyncAlt,
   FaSearch,
   FaLink,
+  FaToggleOn,
+  FaToggleOff,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -188,6 +190,64 @@ export default function Sliders() {
         e?.response?.data?.message ||
         e?.message ||
         "Failed to delete slider.";
+      setError(msg);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: msg,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ---------- Active / Inactive toggle ----------
+  const handleToggleStatus = async (slider) => {
+    if (!isLoggedIn) {
+      setError("You must be logged in as admin to change status.");
+      return;
+    }
+
+    const id = slider._id || slider.id;
+    if (!id) {
+      setError("Cannot update this slider (missing identifier).");
+      return;
+    }
+
+    const newStatus = !slider.isActive;
+
+    try {
+      setSaving(true);
+      setError("");
+      setSuccess("");
+
+      await updateSlider(id, { isActive: newStatus });
+
+      // Local state update so row list se gayab na ho
+      setSliders((prev) =>
+        prev.map((s) =>
+          (s._id || s.id) === (slider._id || slider.id)
+            ? { ...s, isActive: newStatus }
+            : s
+        )
+      );
+
+      setSuccess(
+        `Slider ${newStatus ? "activated" : "deactivated"} successfully.`
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: newStatus ? "Activated" : "Deactivated",
+        text: `Slider ${newStatus ? "activated" : "deactivated"} successfully.`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Failed to update slider status.";
       setError(msg);
       Swal.fire({
         icon: "error",
@@ -507,7 +567,10 @@ export default function Sliders() {
                       ) : (
                         <div
                           className="h-16 w-32 rounded-lg border flex items-center justify-center text-xs"
-                          style={{ borderColor: themeColors.border, color: themeColors.text }}
+                          style={{
+                            borderColor: themeColors.border,
+                            color: themeColors.text,
+                          }}
                         >
                           No image
                         </div>
@@ -583,6 +646,31 @@ export default function Sliders() {
                     {/* Actions */}
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
+                        {/* Active/Inactive Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(s)}
+                          disabled={!isLoggedIn || saving}
+                          className="p-2 rounded-lg border text-xs disabled:opacity-40"
+                          style={{
+                            borderColor: themeColors.border,
+                            color: s.isActive
+                              ? themeColors.warning || "#f59e0b"
+                              : themeColors.success ||
+                                themeColors.primary,
+                          }}
+                          title={
+                            isLoggedIn
+                              ? s.isActive
+                                ? "Mark as Inactive"
+                                : "Mark as Active"
+                              : "Login as admin to change status"
+                          }
+                        >
+                          {s.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                        </button>
+
+                        {/* Edit */}
                         <button
                           type="button"
                           onClick={() => handleEdit(s)}
@@ -600,6 +688,8 @@ export default function Sliders() {
                         >
                           <FaEdit />
                         </button>
+
+                        {/* Delete */}
                         <button
                           type="button"
                           onClick={() => handleDelete(s)}

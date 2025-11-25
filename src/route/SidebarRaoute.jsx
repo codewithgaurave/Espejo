@@ -1,18 +1,13 @@
-// src/routes/index.js
 import { lazy } from "react";
 import {
   FaCoins,
   FaUsers,
   FaBox,
-  FaGavel,
   FaTachometerAlt,
-  FaClipboardList,
-  FaQuestionCircle,
-  FaChartBar,
-  FaMapMarkerAlt,
   FaShoppingCart,
   FaEnvelopeOpenText,
-  FaImages, // 👈 slider icon
+  FaImages,
+  FaKey,         // 🔐 NEW icon
 } from "react-icons/fa";
 
 // pages
@@ -22,7 +17,8 @@ const Products = lazy(() => import("../pages/Products"));
 const Offers = lazy(() => import("../pages/Offers"));
 const Orders = lazy(() => import("../pages/Orders"));
 const Enquiries = lazy(() => import("../pages/Enquiries"));
-const Sliders = lazy(() => import("../pages/Sliders")); // 👈 new
+const Sliders = lazy(() => import("../pages/Sliders"));
+const ChangePassword = lazy(() => import("../pages/ChangePassword"));   // NEW
 
 const routes = [
   { path: "/dashboard", component: Dashboard, name: "Dashboard", icon: FaTachometerAlt },
@@ -31,7 +27,8 @@ const routes = [
   { path: "/offers", component: Offers, name: "Offers", icon: FaCoins },
   { path: "/orders", component: Orders, name: "Orders", icon: FaShoppingCart },
   { path: "/enquiries", component: Enquiries, name: "Enquiries", icon: FaEnvelopeOpenText },
-  { path: "/sliders", component: Sliders, name: "Sliders", icon: FaImages }, // 👈 new route
+  { path: "/sliders", component: Sliders, name: "Sliders", icon: FaImages },
+  { path: "/change-password", component: ChangePassword, name: "Change Password", icon: FaKey }, // NEW
 ];
 
 export default routes;

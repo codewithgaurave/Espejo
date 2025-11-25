@@ -98,7 +98,7 @@ const Login = () => {
             className="text-sm"
             style={{ color: themeColors.textSecondary }}
           >
-            Smart Survey Management Platform
+           Admin Panel
           </p>
         </div>
 

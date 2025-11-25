@@ -20,6 +20,9 @@ import {
   FaImage,
   FaTable,
   FaThLarge,
+  FaToggleOn,
+  FaToggleOff,
+  FaEye,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -75,6 +78,9 @@ export default function Products() {
 
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("table"); // "table" | "card"
+
+  // NEW: full view modal product
+  const [viewProduct, setViewProduct] = useState(null);
 
   // ---------- fetchers ----------
   const fetchCategories = async () => {
@@ -403,6 +409,69 @@ export default function Products() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // NEW: Active/Inactive toggle handler
+  const handleToggleStatus = async (prod) => {
+    if (!isLoggedIn) {
+      setError("You must be logged in as admin to change status.");
+      return;
+    }
+
+    const idOrSlug = prod.slug || prod._id || prod.id;
+    if (!idOrSlug) {
+      setError("Cannot update this product (missing identifier).");
+      return;
+    }
+
+    const newStatus = !prod.isActive;
+
+    try {
+      setSaving(true);
+      setError("");
+      setSuccess("");
+
+      await updateProduct(idOrSlug, { isActive: newStatus });
+
+      // Local state update so row/card list se gayab na ho
+      setProducts((prev) =>
+        prev.map((p) =>
+          (p._id || p.id || p.slug) === (prod._id || prod.id || prod.slug)
+            ? { ...p, isActive: newStatus }
+            : p
+        )
+      );
+
+      setSuccess(
+        `Product ${newStatus ? "activated" : "deactivated"} successfully.`
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: newStatus ? "Activated" : "Deactivated",
+        text: `Product ${newStatus ? "activated" : "deactivated"} successfully.`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Failed to update product status.";
+      setError(msg);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: msg,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // NEW: View full product handler
+  const handleView = (prod) => {
+    setViewProduct(prod);
   };
 
   const handleSubmit = async (e) => {
@@ -811,6 +880,49 @@ export default function Products() {
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-2">
+                            {/* Active/Inactive Toggle Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(p)}
+                              disabled={!isLoggedIn || saving}
+                              className="p-2 rounded-lg border text-xs disabled:opacity-40"
+                              style={{
+                                borderColor: themeColors.border,
+                                color: p.isActive
+                                  ? themeColors.warning || "#f59e0b"
+                                  : themeColors.success ||
+                                    themeColors.primary,
+                              }}
+                              title={
+                                isLoggedIn
+                                  ? p.isActive
+                                    ? "Mark as Inactive"
+                                    : "Mark as Active"
+                                  : "Login as admin to change status"
+                              }
+                            >
+                              {p.isActive ? (
+                                <FaToggleOn />
+                              ) : (
+                                <FaToggleOff />
+                              )}
+                            </button>
+
+                            {/* View Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleView(p)}
+                              className="p-2 rounded-lg border text-xs"
+                              style={{
+                                borderColor: themeColors.border,
+                                color: themeColors.text,
+                              }}
+                              title="View full details"
+                            >
+                              <FaEye />
+                            </button>
+
+                            {/* Edit Button */}
                             <button
                               type="button"
                               onClick={() => handleEdit(p)}
@@ -828,6 +940,8 @@ export default function Products() {
                             >
                               <FaEdit />
                             </button>
+
+                            {/* Delete Button */}
                             <button
                               type="button"
                               onClick={() => handleDelete(p)}
@@ -1069,6 +1183,20 @@ export default function Products() {
                             {p.createdAt ? fmtDate(p.createdAt) : "-"}
                           </span>
                           <div className="flex items-center gap-2">
+                            {/* View button in card */}
+                            <button
+                              type="button"
+                              onClick={() => handleView(p)}
+                              className="px-2 py-1 rounded-lg border text-[11px] flex items-center gap-1"
+                              style={{
+                                borderColor: themeColors.border,
+                                color: themeColors.text,
+                              }}
+                              title="View full details"
+                            >
+                              <FaEye /> View
+                            </button>
+
                             <button
                               type="button"
                               onClick={() => handleEdit(p)}
@@ -1704,6 +1832,323 @@ export default function Products() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* FULL VIEW MODAL */}
+      {viewProduct && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
+          <div
+            className="w-full max-w-4xl mx-4 rounded-2xl shadow-lg border max-h-[90vh] overflow-hidden flex flex-col"
+            style={{
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b"
+              style={{ borderColor: themeColors.border }}
+            >
+              <div className="flex items-center gap-2">
+                <h2
+                  className="text-lg font-semibold"
+                  style={{ color: themeColors.text }}
+                >
+                  {viewProduct.name}
+                </h2>
+                <span
+                  className="px-2 py-1 rounded-full text-xs font-semibold"
+                  style={{
+                    backgroundColor: viewProduct.isActive
+                      ? (themeColors.success ||
+                          themeColors.primary) + "15"
+                      : themeColors.border,
+                    color: viewProduct.isActive
+                      ? themeColors.success || themeColors.primary
+                      : themeColors.text,
+                  }}
+                >
+                  {viewProduct.isActive ? "Active" : "Inactive"}
+                </span>
+              </div>
+              <button
+                onClick={() => setViewProduct(null)}
+                className="text-xl leading-none px-2"
+                style={{ color: themeColors.text }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="px-6 py-4 overflow-y-auto space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Images section */}
+                <div className="space-y-3">
+                  <div
+                    className="rounded-lg overflow-hidden border"
+                    style={{ borderColor: themeColors.border }}
+                  >
+                    <img
+                      src={
+                        viewProduct.mainImage?.url ||
+                        viewProduct.galleryImages?.[0]?.url ||
+                        ""
+                      }
+                      alt={viewProduct.name}
+                      className="w-full h-56 object-cover"
+                    />
+                  </div>
+                  {Array.isArray(viewProduct.galleryImages) &&
+                    viewProduct.galleryImages.length > 0 && (
+                      <div>
+                        <p
+                          className="text-xs mb-2 font-medium"
+                          style={{ color: themeColors.text }}
+                        >
+                          Gallery
+                        </p>
+                        <div className="flex gap-2 overflow-x-auto">
+                          {viewProduct.galleryImages.map((g, i) => (
+                            <img
+                              key={i}
+                              src={g.url}
+                              alt={`${viewProduct.name} ${i + 1}`}
+                              className="w-16 h-16 object-cover rounded-md flex-shrink-0 border"
+                              style={{
+                                borderColor: themeColors.border,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                {/* Details section */}
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <p
+                      className="text-xs uppercase font-semibold mb-1"
+                      style={{ color: themeColors.text }}
+                    >
+                      Pricing
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className="text-lg font-bold"
+                        style={{ color: themeColors.primary }}
+                      >
+                        {fmtCurrency(getFinalPrice(viewProduct))}
+                      </span>
+                      {viewProduct.discountPercent ? (
+                        <>
+                          <span className="line-through text-xs opacity-70">
+                            {fmtCurrency(viewProduct.price)}
+                          </span>
+                          <span
+                            className="text-xs font-semibold"
+                            style={{
+                              color:
+                                themeColors.success ||
+                                themeColors.primary,
+                            }}
+                          >
+                            {viewProduct.discountPercent}% OFF
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs opacity-70">
+                          {fmtCurrency(viewProduct.price)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p
+                      className="text-xs uppercase font-semibold mb-1"
+                      style={{ color: themeColors.text }}
+                    >
+                      Category
+                    </p>
+                    <p style={{ color: themeColors.text }}>
+                      {viewProduct.category?.name ||
+                        viewProduct.categoryId?.name ||
+                        categoryMap[viewProduct.categoryId] ||
+                        "-"}
+                    </p>
+                  </div>
+
+                  {viewProduct.description && (
+                    <div>
+                      <p
+                        className="text-xs uppercase font-semibold mb-1"
+                        style={{ color: themeColors.text }}
+                      >
+                        Description
+                      </p>
+                      <p style={{ color: themeColors.text }}>
+                        {viewProduct.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {viewProduct.about && (
+                    <div>
+                      <p
+                        className="text-xs uppercase font-semibold mb-1"
+                        style={{ color: themeColors.text }}
+                      >
+                        About
+                      </p>
+                      <p
+                        className="text-xs"
+                        style={{ color: themeColors.text }}
+                      >
+                        {viewProduct.about}
+                      </p>
+                    </div>
+                  )}
+
+                  {(Array.isArray(viewProduct.sizes) &&
+                    viewProduct.sizes.length > 0) && (
+                    <div>
+                      <p
+                        className="text-xs uppercase font-semibold mb-1"
+                        style={{ color: themeColors.text }}
+                      >
+                        Sizes
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {viewProduct.sizes.map((s) => (
+                          <span
+                            key={s}
+                            className="px-2 py-0.5 rounded-full text-[11px]"
+                            style={{
+                              backgroundColor:
+                                themeColors.background + "60",
+                              color: themeColors.text,
+                            }}
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(Array.isArray(viewProduct.colors) &&
+                    viewProduct.colors.length > 0) && (
+                    <div>
+                      <p
+                        className="text-xs uppercase font-semibold mb-1"
+                        style={{ color: themeColors.text }}
+                      >
+                        Colors
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {viewProduct.colors.map((c) => (
+                          <span
+                            key={c}
+                            className="px-2 py-0.5 rounded-full text-[11px]"
+                            style={{
+                              backgroundColor:
+                                themeColors.background + "60",
+                              color: themeColors.text,
+                            }}
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(Array.isArray(viewProduct.addOns) &&
+                    viewProduct.addOns.length > 0) && (
+                    <div>
+                      <p
+                        className="text-xs uppercase font-semibold mb-1"
+                        style={{ color: themeColors.text }}
+                      >
+                        Add-ons
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {viewProduct.addOns.map((a, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 rounded-full text-[11px]"
+                            style={{
+                              backgroundColor: a.isDefault
+                                ? (themeColors.success ||
+                                    themeColors.primary) + "20"
+                                : themeColors.background + "60",
+                              color: themeColors.text,
+                            }}
+                          >
+                            {a.name}{" "}
+                            {a.price
+                              ? `(+${fmtCurrency(a.price)})`
+                              : ""}
+                            {a.isDefault ? " • Default" : ""}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 text-xs opacity-70 space-y-1">
+                    <p style={{ color: themeColors.text }}>
+                      Created:{" "}
+                      {viewProduct.createdAt
+                        ? fmtDate(viewProduct.createdAt)
+                        : "-"}
+                    </p>
+                    {viewProduct.updatedAt && (
+                      <p style={{ color: themeColors.text }}>
+                        Updated: {fmtDate(viewProduct.updatedAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom actions (optional quick actions) */}
+              <div className="flex justify-end gap-2 pt-2">
+                {isLoggedIn && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleEdit(viewProduct);
+                        setViewProduct(null);
+                      }}
+                      className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1"
+                      style={{
+                        backgroundColor: themeColors.surface,
+                        borderColor: themeColors.border,
+                        color: themeColors.text,
+                      }}
+                    >
+                      <FaEdit /> Edit
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setViewProduct(null)}
+                  className="px-3 py-2 rounded-lg text-xs border"
+                  style={{
+                    backgroundColor: themeColors.surface,
+                    borderColor: themeColors.border,
+                    color: themeColors.text,
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -16,6 +16,8 @@ import {
   FaTrash,
   FaSyncAlt,
   FaSearch,
+  FaToggleOn,
+  FaToggleOff,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -105,8 +107,7 @@ export default function Categories() {
       name: cat.name || "",
       slug: cat.slug || "",
       description: cat.description || "",
-      isActive:
-        typeof cat.isActive === "boolean" ? cat.isActive : true,
+      isActive: typeof cat.isActive === "boolean" ? cat.isActive : true,
     });
     setSuccess("");
     setError("");
@@ -159,6 +160,64 @@ export default function Categories() {
         e?.response?.data?.message ||
         e?.message ||
         "Failed to delete category.";
+      setError(msg);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: msg,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleStatus = async (cat) => {
+    if (!isLoggedIn) {
+      setError("You must be logged in as admin to change status.");
+      return;
+    }
+
+    const idOrSlug = cat.slug || cat._id || cat.id;
+    if (!idOrSlug) {
+      setError("Cannot update this category (missing identifier).");
+      return;
+    }
+
+    const newStatus = !cat.isActive;
+
+    try {
+      setSaving(true);
+      setError("");
+      setSuccess("");
+
+      await updateCategory(idOrSlug, { isActive: newStatus });
+
+      // Local state update so row stays visible,
+      // only status changes
+      setCategories((prev) =>
+        prev.map((c) =>
+          (c._id || c.id || c.slug) === (cat._id || cat.id || cat.slug)
+            ? { ...c, isActive: newStatus }
+            : c
+        )
+      );
+
+      setSuccess(
+        `Category ${newStatus ? "activated" : "deactivated"} successfully.`
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: newStatus ? "Activated" : "Deactivated",
+        text: `Category ${newStatus ? "activated" : "deactivated"} successfully.`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Failed to update category status.";
       setError(msg);
       Swal.fire({
         icon: "error",
@@ -248,9 +307,7 @@ export default function Categories() {
       const name = (c.name || "").toLowerCase();
       const slug = (c.slug || "").toLowerCase();
       const desc = (c.description || "").toLowerCase();
-      return (
-        name.includes(q) || slug.includes(q) || desc.includes(q)
-      );
+      return name.includes(q) || slug.includes(q) || desc.includes(q);
     });
   }, [categories, search]);
 
@@ -320,9 +377,7 @@ export default function Categories() {
               color: themeColors.onPrimary,
             }}
             title={
-              isLoggedIn
-                ? "Add new category"
-                : "Login as admin to add"
+              isLoggedIn ? "Add new category" : "Login as admin to add"
             }
           >
             <FaPlus />
@@ -351,13 +406,10 @@ export default function Categories() {
               className="p-3 rounded-lg text-sm border"
               style={{
                 backgroundColor:
-                  (themeColors.success || themeColors.primary) +
-                  "15",
+                  (themeColors.success || themeColors.primary) + "15",
                 borderColor:
-                  (themeColors.success || themeColors.primary) +
-                  "50",
-                color:
-                  themeColors.success || themeColors.primary,
+                  (themeColors.success || themeColors.primary) + "50",
+                color: themeColors.success || themeColors.primary,
               }}
             >
               {success}
@@ -368,17 +420,14 @@ export default function Categories() {
               className="p-3 rounded-lg text-sm border"
               style={{
                 backgroundColor:
-                  (themeColors.warning || themeColors.primary) +
-                  "15",
+                  (themeColors.warning || themeColors.primary) + "15",
                 borderColor:
-                  (themeColors.warning || themeColors.primary) +
-                  "50",
-                color:
-                  themeColors.warning || themeColors.primary,
+                  (themeColors.warning || themeColors.primary) + "50",
+                color: themeColors.warning || themeColors.primary,
               }}
             >
-              You are viewing public categories. Login as admin to
-              add, edit, or delete categories.
+              You are viewing public categories. Login as admin to add,
+              edit, or delete categories.
             </div>
           )}
         </div>
@@ -413,22 +462,17 @@ export default function Categories() {
                   backgroundColor: themeColors.background + "30",
                 }}
               >
-                {[
-                  "Name",
-                  "Slug",
-                  "Description",
-                  "Status",
-                  "Created",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: themeColors.text }}
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["Name", "Slug", "Description", "Status", "Created", "Actions"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: themeColors.text }}
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody
@@ -497,12 +541,34 @@ export default function Categories() {
                       className="px-4 py-2 text-xs"
                       style={{ color: themeColors.text }}
                     >
-                      {cat.createdAt
-                        ? fmtDate(cat.createdAt)
-                        : "-"}
+                      {cat.createdAt ? fmtDate(cat.createdAt) : "-"}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
+                        {/* Active/Inactive Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(cat)}
+                          disabled={!isLoggedIn || saving}
+                          className="p-2 rounded-lg border text-xs disabled:opacity-40"
+                          style={{
+                            borderColor: themeColors.border,
+                            color: cat.isActive
+                              ? themeColors.warning || "#f59e0b"
+                              : themeColors.success || themeColors.primary,
+                          }}
+                          title={
+                            isLoggedIn
+                              ? cat.isActive
+                                ? "Mark as Inactive"
+                                : "Mark as Active"
+                              : "Login as admin to change status"
+                          }
+                        >
+                          {cat.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                        </button>
+
+                        {/* Edit Button */}
                         <button
                           type="button"
                           onClick={() => handleEdit(cat)}
@@ -513,13 +579,13 @@ export default function Categories() {
                             color: themeColors.text,
                           }}
                           title={
-                            isLoggedIn
-                              ? "Edit"
-                              : "Login as admin to edit"
+                            isLoggedIn ? "Edit" : "Login as admin to edit"
                           }
                         >
                           <FaEdit />
                         </button>
+
+                        {/* Delete Button */}
                         <button
                           type="button"
                           onClick={() => handleDelete(cat)}
@@ -530,9 +596,7 @@ export default function Categories() {
                             color: themeColors.danger,
                           }}
                           title={
-                            isLoggedIn
-                              ? "Delete"
-                              : "Login as admin to delete"
+                            isLoggedIn ? "Delete" : "Login as admin to delete"
                           }
                         >
                           <FaTrash />
@@ -557,7 +621,8 @@ export default function Categories() {
               borderColor: themeColors.border,
             }}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b"
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b"
               style={{ borderColor: themeColors.border }}
             >
               <h2
