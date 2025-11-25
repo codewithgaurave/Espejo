@@ -91,7 +91,7 @@ const Login = () => {
             className="text-3xl font-bold mb-2"
             style={{ color: themeColors.primary }}
           >
-            Query
+            Espejo
           </h1>
 
           <p
