@@ -7,7 +7,8 @@ import {
   FaShoppingCart,
   FaEnvelopeOpenText,
   FaImages,
-  FaKey,         // 🔐 NEW icon
+  FaKey,
+  FaBlog,
 } from "react-icons/fa";
 
 // pages
@@ -18,7 +19,8 @@ const Offers = lazy(() => import("../pages/Offers"));
 const Orders = lazy(() => import("../pages/Orders"));
 const Enquiries = lazy(() => import("../pages/Enquiries"));
 const Sliders = lazy(() => import("../pages/Sliders"));
-const ChangePassword = lazy(() => import("../pages/ChangePassword"));   // NEW
+const Blogs = lazy(() => import("../pages/Blogs"));
+const ChangePassword = lazy(() => import("../pages/ChangePassword"));
 
 const routes = [
   { path: "/dashboard", component: Dashboard, name: "Dashboard", icon: FaTachometerAlt },
@@ -28,7 +30,8 @@ const routes = [
   { path: "/orders", component: Orders, name: "Orders", icon: FaShoppingCart },
   { path: "/enquiries", component: Enquiries, name: "Enquiries", icon: FaEnvelopeOpenText },
   { path: "/sliders", component: Sliders, name: "Sliders", icon: FaImages },
-  { path: "/change-password", component: ChangePassword, name: "Change Password", icon: FaKey }, // NEW
+  { path: "/blogs", component: Blogs, name: "Blogs", icon: FaBlog },
+  { path: "/change-password", component: ChangePassword, name: "Change Password", icon: FaKey },
 ];
 
 export default routes;
