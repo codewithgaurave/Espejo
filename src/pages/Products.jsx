@@ -72,9 +72,22 @@ export default function Products() {
   // NEW: dynamic lists
   const [sizesList, setSizesList] = useState([""]);
   const [colorsList, setColorsList] = useState([""]);
+  const [featuresList, setFeaturesList] = useState([""]); // New Features list
   const [addOns, setAddOns] = useState([
     { name: "", price: "", isDefault: true },
   ]);
+
+  // NEW: Specifications state
+  const [specs, setSpecs] = useState({
+    brand: "",
+    weight: "",
+    material: "",
+    installation: "",
+    warranty: "",
+    frameType: "",
+    dimensions: "",
+    glassType: "",
+  });
 
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("table"); // "table" | "card"
@@ -132,7 +145,18 @@ export default function Products() {
     setGalleryImageFiles([]);
     setSizesList([""]);
     setColorsList([""]);
+    setFeaturesList([""]);
     setAddOns([{ name: "", price: "", isDefault: true }]);
+    setSpecs({
+      brand: "",
+      weight: "",
+      material: "",
+      installation: "",
+      warranty: "",
+      frameType: "",
+      dimensions: "",
+      glassType: "",
+    });
   };
 
   const openAddModal = () => {
@@ -196,6 +220,33 @@ export default function Products() {
       if (prev.length === 1) return [""];
       return prev.filter((_, i) => i !== index);
     });
+  };
+
+  // ---------- Features dynamic handlers ----------
+  const handleFeatureChange = (index, value) => {
+    setFeaturesList((prev) =>
+      prev.map((f, i) => (i === index ? value : f))
+    );
+  };
+
+  const handleFeatureAddRow = () => {
+    setFeaturesList((prev) => [...prev, ""]);
+  };
+
+  const handleFeatureRemoveRow = (index) => {
+    setFeaturesList((prev) => {
+      if (prev.length === 1) return [""];
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // ---------- Specifications handler ----------
+  const handleSpecChange = (e) => {
+    const { name, value } = e.target;
+    setSpecs((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   // ---------- Add-ons handlers ----------
@@ -274,6 +325,36 @@ export default function Products() {
       setColorsList([""]);
     }
 
+    if (Array.isArray(prod.features) && prod.features.length) {
+      setFeaturesList(prod.features);
+    } else {
+      setFeaturesList([""]);
+    }
+
+    if (prod.specifications) {
+      setSpecs({
+        brand: prod.specifications.brand || "",
+        weight: prod.specifications.weight || "",
+        material: prod.specifications.material || "",
+        installation: prod.specifications.installation || "",
+        warranty: prod.specifications.warranty || "",
+        frameType: prod.specifications.frameType || "",
+        dimensions: prod.specifications.dimensions || "",
+        glassType: prod.specifications.glassType || "",
+      });
+    } else {
+      setSpecs({
+        brand: "",
+        weight: "",
+        material: "",
+        installation: "",
+        warranty: "",
+        frameType: "",
+        dimensions: "",
+        glassType: "",
+      });
+    }
+
     if (Array.isArray(prod.addOns) && prod.addOns.length) {
       setAddOns(
         prod.addOns.map((a) => ({
@@ -321,6 +402,25 @@ export default function Products() {
       .filter((c) => c.length);
     if (cleanColors.length) {
       fd.append("colors", JSON.stringify(cleanColors));
+    }
+
+    const cleanFeatures = featuresList
+      .map((f) => f.trim())
+      .filter((f) => f.length);
+    if (cleanFeatures.length) {
+      fd.append("features", JSON.stringify(cleanFeatures));
+    }
+
+    const cleanSpecs = {};
+    let hasSpecs = false;
+    Object.keys(specs).forEach((key) => {
+      if (specs[key].trim()) {
+        cleanSpecs[key] = specs[key].trim();
+        hasSpecs = true;
+      }
+    });
+    if (hasSpecs) {
+      fd.append("specifications", JSON.stringify(cleanSpecs));
     }
 
     const cleanedAddOns = addOns
@@ -1596,6 +1696,253 @@ export default function Products() {
                   >
                     <FaPlus /> Add Color
                   </button>
+                </div>
+
+                {/* Features dynamic UI */}
+                <div className="md:col-span-2">
+                  <label
+                    className="block mb-1 text-sm font-medium"
+                    style={{ color: themeColors.text }}
+                  >
+                    Features
+                  </label>
+                  <p
+                    className="text-[11px] mb-2 opacity-70"
+                    style={{ color: themeColors.text }}
+                  >
+                    e.g. Touch Sensor, Anti-fog, Bluetooth etc.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {featuresList.map((f, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="text"
+                          value={f}
+                          onChange={(e) =>
+                            handleFeatureChange(idx, e.target.value)
+                          }
+                          className="flex-1 px-2 py-1 rounded border text-xs"
+                          style={{
+                            backgroundColor: themeColors.surface,
+                            borderColor: themeColors.border,
+                            color: themeColors.text,
+                          }}
+                          placeholder="Feature description"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleFeatureRemoveRow(idx)}
+                          className="px-2 py-1 rounded text-[11px] border"
+                          style={{
+                            borderColor: themeColors.border,
+                            color: themeColors.danger,
+                          }}
+                        >
+                          X
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleFeatureAddRow}
+                    className="mt-2 px-3 py-1 rounded-lg text-xs border flex items-center gap-1"
+                    style={{
+                      backgroundColor: themeColors.surface,
+                      borderColor: themeColors.border,
+                      color: themeColors.text,
+                    }}
+                  >
+                    <FaPlus /> Add Feature
+                  </button>
+                </div>
+
+                {/* Specifications Section */}
+                <div className="md:col-span-2 border-t pt-4 mt-2">
+                  <h3 className="text-sm font-bold mb-3" style={{ color: themeColors.text }}>
+                    Specifications
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Brand */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Brand
+                      </label>
+                      <input
+                        type="text"
+                        name="brand"
+                        value={specs.brand}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="Espezo"
+                      />
+                    </div>
+                    {/* Weight */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Weight
+                      </label>
+                      <input
+                        type="text"
+                        name="weight"
+                        value={specs.weight}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="5 kg"
+                      />
+                    </div>
+                    {/* Material */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Material
+                      </label>
+                      <input
+                        type="text"
+                        name="material"
+                        value={specs.material}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="Aluminum, Glass"
+                      />
+                    </div>
+                    {/* Installation */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Installation
+                      </label>
+                      <input
+                        type="text"
+                        name="installation"
+                        value={specs.installation}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="Wall Mount"
+                      />
+                    </div>
+                    {/* Warranty */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Warranty
+                      </label>
+                      <input
+                        type="text"
+                        name="warranty"
+                        value={specs.warranty}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="5 Years"
+                      />
+                    </div>
+                    {/* Frame Type */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Frame Type
+                      </label>
+                      <input
+                        type="text"
+                        name="frameType"
+                        value={specs.frameType}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="Frameless / Framed"
+                      />
+                    </div>
+                    {/* Dimensions */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Dimensions
+                      </label>
+                      <input
+                        type="text"
+                        name="dimensions"
+                        value={specs.dimensions}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="600mm x 800mm"
+                      />
+                    </div>
+                    {/* Glass Type */}
+                    <div>
+                      <label
+                        className="block mb-1 text-xs font-medium"
+                        style={{ color: themeColors.text }}
+                      >
+                        Glass Type
+                      </label>
+                      <input
+                        type="text"
+                        name="glassType"
+                        value={specs.glassType}
+                        onChange={handleSpecChange}
+                        className="w-full px-2 py-1.5 rounded border text-sm"
+                        style={{
+                          backgroundColor: themeColors.surface,
+                          borderColor: themeColors.border,
+                          color: themeColors.text,
+                        }}
+                        placeholder="Saint-Gobain Mirror"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Add-ons friendly UI */}
