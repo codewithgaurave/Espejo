@@ -10,7 +10,7 @@ export const listOrders = async () => {
 
 // PATCH /api/orders/:orderId/status  (admin update status)
 export const updateOrderStatus = async (orderId, status) => {
-  const { data } = await http.patch(`/api/orders/${orderId}/status`, {
+  const { data } = await http.put(`/api/orders/${orderId}/status`, {
     status,
   });
   return data;
