@@ -2412,6 +2412,62 @@ export default function Products() {
                     </div>
                   )}
 
+                  {/* Features */}
+                  {(Array.isArray(viewProduct.features) &&
+                    viewProduct.features.length > 0) && (
+                    <div>
+                      <p
+                        className="text-xs uppercase font-semibold mb-1"
+                        style={{ color: themeColors.text }}
+                      >
+                        Features
+                      </p>
+                      <ul className="list-disc list-inside text-xs space-y-0.5">
+                        {viewProduct.features.map((f, i) => (
+                          <li key={i} style={{ color: themeColors.text }}>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Specifications */}
+                  {viewProduct.specifications && (
+                    <div>
+                      <p
+                        className="text-xs uppercase font-semibold mb-1"
+                        style={{ color: themeColors.text }}
+                      >
+                        Specifications
+                      </p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border p-2" style={{ borderColor: themeColors.border }}>
+                        {Object.entries(viewProduct.specifications).map(([key, val]) => {
+                          if (!val) return null;
+                          const label = key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/^./, (str) => str.toUpperCase());
+                          return (
+                            <div key={key} className="text-xs flex justify-between border-b last:border-0 py-1" style={{ borderColor: themeColors.border }}>
+                              <span
+                                className="font-medium opacity-80"
+                                style={{ color: themeColors.text }}
+                              >
+                                {label}
+                              </span>
+                              <span
+                                className="font-semibold text-right"
+                                style={{ color: themeColors.text }}
+                              >
+                                {val}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {(Array.isArray(viewProduct.addOns) &&
                     viewProduct.addOns.length > 0) && (
                     <div>
