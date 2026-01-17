@@ -10,14 +10,13 @@ export const getCategories = async () => {
 // Admin Add – POST {{baseUrl}}/api/categories (Token via interceptor)
 export const createCategory = async (payload) => {
   const { data } = await http.post("/api/categories", payload);
-  return data; // could be { message, category } or category
+  return data;
 };
 
 // Admin Update – PUT {{baseUrl}}/api/categories/:idOrSlug (Token)
 export const updateCategory = async (idOrSlug, payload) => {
   const { data } = await http.put(`/api/categories/${idOrSlug}`, payload);
   return data;
-  // NOTE: If backend uses PATCH instead of PUT, change to http.patch(...)
 };
 
 // Admin Delete – DELETE {{baseUrl}}/api/categories/:idOrSlug (Token)

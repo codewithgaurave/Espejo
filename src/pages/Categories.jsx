@@ -55,6 +55,8 @@ export default function Categories() {
   const [editing, setEditing] = useState(null); // category being edited
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   const fetchCategories = async () => {
     try {
@@ -82,6 +84,8 @@ export default function Categories() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditing(null);
+    setImageFile(null);
+    setImagePreview("");
   };
 
   const openAddModal = () => {
@@ -101,6 +105,22 @@ export default function Categories() {
     setSuccess("");
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size should be less than 5MB");
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleEdit = (cat) => {
     setEditing(cat);
     setForm({
@@ -109,6 +129,7 @@ export default function Categories() {
       description: cat.description || "",
       isActive: typeof cat.isActive === "boolean" ? cat.isActive : true,
     });
+    setImagePreview(cat.image?.url || "");
     setSuccess("");
     setError("");
     setIsModalOpen(true);
@@ -242,13 +263,16 @@ export default function Categories() {
       return;
     }
 
-    const payload = {
-      name: form.name.trim(),
-      // slug optional: backend may auto-generate
-      ...(form.slug.trim() && { slug: form.slug.trim() }),
-      description: form.description.trim(),
-      isActive: form.isActive,
-    };
+    const formData = new FormData();
+    formData.append("name", form.name.trim());
+    formData.append("description", form.description.trim());
+    formData.append("isActive", form.isActive);
+    if (form.slug.trim()) {
+      formData.append("slug", form.slug.trim());
+    }
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
 
     try {
       setSaving(true);
@@ -260,7 +284,7 @@ export default function Categories() {
         if (!idOrSlug) {
           throw new Error("Missing category identifier for update.");
         }
-        await updateCategory(idOrSlug, payload);
+        await updateCategory(idOrSlug, formData);
         setSuccess("Category updated successfully.");
         Swal.fire({
           icon: "success",
@@ -270,7 +294,7 @@ export default function Categories() {
           showConfirmButton: false,
         });
       } else {
-        await createCategory(payload);
+        await createCategory(formData);
         setSuccess("Category created successfully.");
         Swal.fire({
           icon: "success",
@@ -462,7 +486,7 @@ export default function Categories() {
                   backgroundColor: themeColors.background + "30",
                 }}
               >
-                {["Name", "Slug", "Description", "Status", "Created", "Actions"].map(
+                {["Image", "Name", "Slug", "Description", "Status", "Created", "Actions"].map(
                   (h) => (
                     <th
                       key={h}
@@ -482,7 +506,7 @@ export default function Categories() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-6 text-center text-sm"
                     style={{ color: themeColors.text }}
                   >
@@ -492,7 +516,7 @@ export default function Categories() {
               ) : filteredCategories.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-6 text-center text-sm"
                     style={{ color: themeColors.text }}
                   >
@@ -502,6 +526,23 @@ export default function Categories() {
               ) : (
                 filteredCategories.map((cat) => (
                   <tr key={cat._id || cat.id || cat.slug}>
+                    <td className="px-4 py-2">
+                       {cat.image?.url ? (
+                         <img 
+                           src={cat.image.url} 
+                           alt={cat.name} 
+                           className="w-10 h-10 object-cover rounded-lg border shadow-sm"
+                           style={{ borderColor: themeColors.border }}
+                         />
+                       ) : (
+                         <div 
+                           className="w-10 h-10 rounded-lg border flex items-center justify-center text-xs opacity-50"
+                           style={{ backgroundColor: themeColors.background, borderColor: themeColors.border }}
+                         >
+                           No img
+                         </div>
+                       )}
+                    </td>
                     <td
                       className="px-4 py-2"
                       style={{ color: themeColors.text }}
@@ -739,6 +780,30 @@ export default function Categories() {
                   }}
                   placeholder="Short description for this category..."
                 />
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block mb-1 text-sm font-medium" style={{ color: themeColors.text }}>
+                   Category Image
+                </label>
+                <div className="flex items-center gap-4">
+                  {imagePreview && (
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-16 h-16 object-cover rounded-lg border"
+                      style={{ borderColor: themeColors.border }}
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="text-xs"
+                    style={{ color: themeColors.text }}
+                  />
+                </div>
               </div>
 
               {/* Active */}
