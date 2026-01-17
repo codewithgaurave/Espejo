@@ -24,6 +24,7 @@ import {
   FaToggleOn,
   FaToggleOff,
   FaEye,
+  FaTags
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
