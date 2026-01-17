@@ -10,17 +10,13 @@ export const listProducts = async () => {
 
 // Admin: create product – POST /api/products (multipart/form-data)
 export const createProduct = async (formData) => {
-  const { data } = await http.post("/api/products", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return data; // { message, product } ya product
+  const { data } = await http.post("/api/products", formData);
+  return data;
 };
 
 // Admin: update product – PUT /api/products/:idOrSlug (multipart/form-data)
 export const updateProduct = async (idOrSlug, formData) => {
-  const { data } = await http.put(`/api/products/${idOrSlug}`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const { data } = await http.put(`/api/products/${idOrSlug}`, formData);
   return data;
 };
 
