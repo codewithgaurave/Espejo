@@ -10,6 +10,7 @@ import {
   updateProduct,
   deleteProduct,
 } from "../apis/products";
+import { listOffers } from "../apis/offers";
 import {
   FaBoxOpen,
   FaPlus,
@@ -47,6 +48,7 @@ const emptyForm = {
   description: "",
   about: "",
   isActive: true,
+  offerId: "",
 };
 
 export default function Products() {
@@ -56,6 +58,7 @@ export default function Products() {
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [availableOffers, setAvailableOffers] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,8 +126,18 @@ export default function Products() {
     }
   };
 
+  const fetchOffers = async () => {
+    try {
+      const list = await listOffers();
+      setAvailableOffers(list || []);
+    } catch (e) {
+      console.error("Failed to load offers", e);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
+    fetchOffers();
     fetchProducts();
   }, []);
 
@@ -137,6 +150,16 @@ export default function Products() {
     });
     return map;
   }, [categories]);
+
+  // offerId -> offer map
+  const offerMap = useMemo(() => {
+    const map = {};
+    availableOffers.forEach((o) => {
+      const id = o._id || o.id;
+      if (id) map[id] = o;
+    });
+    return map;
+  }, [availableOffers]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -157,6 +180,7 @@ export default function Products() {
       dimensions: "",
       glassType: "",
     });
+    setForm((prev) => ({ ...prev, offerId: "" }));
   };
 
   const openAddModal = () => {
@@ -311,6 +335,7 @@ export default function Products() {
         typeof prod.isActive === "boolean"
           ? prod.isActive
           : true,
+      offerId: prod.offerId || prod.offer?._id || prod.offer || "",
     });
 
     if (Array.isArray(prod.sizes) && prod.sizes.length) {
@@ -388,6 +413,10 @@ export default function Products() {
 
     if (form.categoryId) {
       fd.append("categoryId", form.categoryId);
+    }
+
+    if (form.offerId) {
+      fd.append("offerId", form.offerId);
     }
 
     const cleanSizes = sizesList
@@ -662,14 +691,74 @@ export default function Products() {
     });
   }, [products, search, categoryMap]);
 
-  const getFinalPrice = (p) => {
-    if (typeof p.finalPrice === "number") return p.finalPrice;
-    if (typeof p.price === "number" && p.discountPercent) {
-      const discount =
-        (p.price * Number(p.discountPercent || 0)) / 100;
-      return p.price - discount;
+  const calculateFinalPrice = (price, discountPercent, offerId) => {
+    const basePrice = Number(price) || 0;
+    const prodDisc = Number(discountPercent) || 0;
+
+    let afterProdDisc = basePrice;
+    let prodDiscAmount = 0;
+
+    if (prodDisc > 0) {
+      prodDiscAmount = (basePrice * prodDisc) / 100;
+      afterProdDisc = basePrice - prodDiscAmount;
     }
-    return p.price;
+
+    let offerDiscAmount = 0;
+    let appliedOffer = null;
+
+    if (offerId) {
+      // Find offer in map
+      const offer = offerMap[offerId];
+      // Check if offer exists and is active
+      if (offer && offer.isActive) {
+        // Check min order amount
+        if (
+          !offer.minOrderAmount ||
+          afterProdDisc >= offer.minOrderAmount
+        ) {
+          appliedOffer = offer;
+          if (offer.discountType === "percentage") {
+            const val = Number(offer.discountValue) || 0;
+            offerDiscAmount = (afterProdDisc * val) / 100;
+            // Cap at max discount if set
+            if (
+              offer.maxDiscountAmount &&
+              offerDiscAmount > offer.maxDiscountAmount
+            ) {
+              offerDiscAmount = offer.maxDiscountAmount;
+            }
+          } else {
+            // Flat
+            offerDiscAmount = Number(offer.discountValue) || 0;
+          }
+        }
+      }
+    }
+
+    // Ensure price doesn't go negative
+    const final = Math.max(0, afterProdDisc - offerDiscAmount);
+
+    return {
+      basePrice,
+      prodDiscAmount,
+      offerDiscAmount,
+      finalPrice: final,
+      appliedOffer,
+    };
+  };
+
+  const getFinalPrice = (p) => {
+    // If backend already calculated finalPrice, we might use it,
+    // but for dynamic offers (if they changed), let's recalculate on client.
+    // We need the offerId from the product.
+    const productPrice = p.price;
+    const productDisc = p.discountPercent;
+    // p.offerId stores ID, or p.offer might be object or ID
+    const oId =
+      p.offerId || (typeof p.offer === "object" ? p.offer?._id : p.offer);
+
+    const { finalPrice } = calculateFinalPrice(productPrice, productDisc, oId);
+    return finalPrice;
   };
 
   return (
@@ -1505,6 +1594,109 @@ export default function Products() {
                   />
                 </div>
 
+                {/* Offer */}
+                <div>
+                  <label
+                    htmlFor="offerId"
+                    className="block mb-1 text-sm font-medium"
+                    style={{ color: themeColors.text }}
+                  >
+                    Select Offer
+                  </label>
+                  <select
+                    id="offerId"
+                    name="offerId"
+                    value={form.offerId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
+                    style={{
+                      backgroundColor: themeColors.background,
+                      borderColor: themeColors.border,
+                      color: themeColors.text,
+                    }}
+                  >
+                    <option value="">No Offer</option>
+                    {availableOffers
+                      .filter((o) => o.isActive)
+                      .map((o) => (
+                        <option key={o._id || o.id} value={o._id || o.id}>
+                          {o.title} ({o.code})
+                        </option>
+                      ))}
+                  </select>
+
+                  {/* Dynamic Price Breakdown Preview */}
+                  {form.price && (
+                    <div
+                      className="mt-3 p-3 rounded-lg text-sm border space-y-1"
+                      style={{
+                        backgroundColor: themeColors.background + "50",
+                        borderColor: themeColors.border,
+                      }}
+                    >
+                      <p className="font-semibold text-xs opacity-70">
+                        Price Breakdown
+                      </p>
+                      <div className="flex justify-between">
+                        <span>Base Price:</span>
+                        <span>{fmtCurrency(Number(form.price))}</span>
+                      </div>
+                      {Number(form.discountPercent) > 0 && (
+                        <div className="flex justify-between text-xs text-green-600">
+                          <span>
+                            Discount ({form.discountPercent}%):
+                          </span>
+                          <span>
+                            -
+                            {fmtCurrency(
+                              calculateFinalPrice(
+                                form.price,
+                                form.discountPercent,
+                                form.offerId
+                              ).prodDiscAmount
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      {form.offerId &&
+                        calculateFinalPrice(
+                          form.price,
+                          form.discountPercent,
+                          form.offerId
+                        ).offerDiscAmount > 0 && (
+                          <div className="flex justify-between text-xs text-blue-600">
+                            <span>Offer Discount:</span>
+                            <span>
+                              -
+                              {fmtCurrency(
+                                calculateFinalPrice(
+                                  form.price,
+                                  form.discountPercent,
+                                  form.offerId
+                                ).offerDiscAmount
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      <div
+                        className="flex justify-between font-bold pt-1 border-t mt-1"
+                        style={{ borderColor: themeColors.border }}
+                      >
+                        <span>Final Price:</span>
+                        <span style={{ color: themeColors.primary }}>
+                          {fmtCurrency(
+                            calculateFinalPrice(
+                              form.price,
+                              form.discountPercent,
+                              form.offerId
+                            ).finalPrice
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Description */}
                 <div className="md:col-span-2">
                   <label
@@ -2311,6 +2503,70 @@ export default function Products() {
                       )}
                     </div>
                   </div>
+
+                  {/* Applied Offer Section in View Modal */}
+                  {(() => {
+                    const breakdown = calculateFinalPrice(
+                      viewProduct.price,
+                      viewProduct.discountPercent,
+                      viewProduct.offerId ||
+                        (typeof viewProduct.offer === "object"
+                          ? viewProduct.offer?._id
+                          : viewProduct.offer)
+                    );
+
+                    if (breakdown.appliedOffer) {
+                      return (
+                        <div
+                          className="mt-2 p-3 rounded-lg border text-xs"
+                          style={{
+                            backgroundColor:
+                              (themeColors.success || themeColors.primary) +
+                              "10",
+                            borderColor:
+                              (themeColors.success || themeColors.primary) +
+                              "40",
+                          }}
+                        >
+                          <p
+                            className="font-bold mb-1"
+                            style={{
+                              color:
+                                themeColors.success || themeColors.primary,
+                            }}
+                          >
+                            <FaTags className="inline mr-1" />
+                            Applied Offer: {breakdown.appliedOffer.title}
+                          </p>
+                          <div className="flex justify-between items-center opacity-80">
+                            <span>Code: {breakdown.appliedOffer.code}</span>
+                            <span>
+                              {breakdown.appliedOffer.discountType ===
+                              "percentage"
+                                ? `${breakdown.appliedOffer.discountValue}% Off`
+                                : `Flat ${fmtCurrency(
+                                    breakdown.appliedOffer.discountValue
+                                  )} Off`}
+                            </span>
+                          </div>
+                          <div
+                            className="flex justify-between items-center font-semibold mt-2 pt-2 border-t"
+                            style={{
+                              borderColor:
+                                (themeColors.success ||
+                                  themeColors.primary) + "40",
+                            }}
+                          >
+                            <span>Offer Discount:</span>
+                            <span>
+                              -{fmtCurrency(breakdown.offerDiscAmount)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <div>
                     <p
