@@ -1035,7 +1035,12 @@ export default function Products() {
                           className="px-4 py-2"
                           style={{ color: themeColors.text }}
                         >
-                          {fmtCurrency(p.price)}
+                          {fmtCurrency(getFinalPrice(p))}
+                          {p.discountPercent || p.offer ? (
+                            <span className="ml-1 text-[10px] line-through opacity-60">
+                              {fmtCurrency(p.price)}
+                            </span>
+                          ) : null}
                         </td>
                         <td
                           className="px-4 py-2 text-xs"
