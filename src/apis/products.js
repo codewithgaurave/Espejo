@@ -3,7 +3,7 @@ import http from "./http";
 
 // Public: list products – GET /api/products
 export const listProducts = async () => {
-  const { data } = await http.get("/api/products");
+  const { data } = await http.get("/api/products?isAdmin=true");
   // could be array ya { products: [...] }
   return Array.isArray(data) ? data : data.products || [];
 };

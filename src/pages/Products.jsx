@@ -1007,11 +1007,12 @@ export default function Products() {
                   </tr>
                 ) : (
                   filteredProducts.map((p) => {
+                    // Robust category name resolution
+                    const catObj = p.category || p.categoryId;
+                    const catId = catObj?._id || catObj || null;
                     const catName =
-                      p.category?.name ||
-                      p.categoryId?.name ||
-                      categoryMap[p.categoryId] ||
-                      "-";
+                      catObj?.name || (catId ? categoryMap[catId] : "-");
+
                     return (
                       <tr key={p._id || p.id || p.slug}>
                         <td
@@ -1183,11 +1184,11 @@ export default function Products() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredProducts.map((p) => {
+                  const catObj = p.category || p.categoryId;
+                  const catId = catObj?._id || catObj || null;
                   const catName =
-                    p.category?.name ||
-                    p.categoryId?.name ||
-                    categoryMap[p.categoryId] ||
-                    "-";
+                    catObj?.name || (catId ? categoryMap[catId] : "-");
+
                   const finalPrice = getFinalPrice(p);
                   return (
                     <div
@@ -2582,10 +2583,14 @@ export default function Products() {
                       Category
                     </p>
                     <p style={{ color: themeColors.text }}>
-                      {viewProduct.category?.name ||
-                        viewProduct.categoryId?.name ||
-                        categoryMap[viewProduct.categoryId] ||
-                        "-"}
+                      {(() => {
+                        const catObj =
+                          viewProduct.category || viewProduct.categoryId;
+                        const catId = catObj?._id || catObj || null;
+                        return (
+                          catObj?.name || (catId ? categoryMap[catId] : "-")
+                        );
+                      })()}
                     </p>
                   </div>
 
