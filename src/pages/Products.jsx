@@ -47,8 +47,8 @@ const emptyForm = {
   discountPercent: "",
   categoryId: "",
   description: "",
-  about: "",
   isActive: true,
+  isBestSeller: false,
   offerId: "",
 };
 
@@ -331,12 +331,15 @@ export default function Products() {
         prod.category?._id ||
         "",
       description: prod.description || "",
-      about: prod.about || "",
       isActive:
         typeof prod.isActive === "boolean"
           ? prod.isActive
-          : true,
-      offerId: prod.offerId || prod.offer?._id || prod.offer || "",
+          : prod.isActive === "true",
+      isBestSeller:
+        typeof prod.isBestSeller === "boolean"
+          ? prod.isBestSeller
+          : prod.isBestSeller === "true",
+      offerId: prod.offer?._id || "",
     });
 
     if (Array.isArray(prod.sizes) && prod.sizes.length) {
@@ -468,11 +471,8 @@ export default function Products() {
       fd.append("description", form.description.trim());
     }
 
-    if (form.about.trim()) {
-      fd.append("about", form.about.trim());
-    }
-
     fd.append("isActive", String(form.isActive));
+    fd.append("isBestSeller", String(form.isBestSeller));
 
     if (mainImageFile) {
       fd.append("mainImage", mainImageFile);
@@ -1729,30 +1729,6 @@ export default function Products() {
                   />
                 </div>
 
-                {/* About */}
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="about"
-                    className="block mb-1 text-sm font-medium"
-                    style={{ color: themeColors.text }}
-                  >
-                    About
-                  </label>
-                  <textarea
-                    id="about"
-                    name="about"
-                    value={form.about}
-                    onChange={handleChange}
-                    rows={2}
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 resize-none"
-                    style={{
-                      backgroundColor: themeColors.background,
-                      borderColor: themeColors.border,
-                      color: themeColors.text,
-                    }}
-                    placeholder="Shatter-proof, energy efficient..."
-                  />
-                </div>
 
                 {/* Active */}
                 <div className="flex items-center gap-2 md:col-span-2">
@@ -1770,6 +1746,25 @@ export default function Products() {
                     style={{ color: themeColors.text }}
                   >
                     Active
+                  </label>
+                </div>
+
+                {/* Best Seller */}
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <input
+                    id="isBestSeller"
+                    name="isBestSeller"
+                    type="checkbox"
+                    checked={form.isBestSeller}
+                    onChange={handleChange}
+                    className="h-4 w-4"
+                  />
+                  <label
+                    htmlFor="isBestSeller"
+                    className="text-sm"
+                    style={{ color: themeColors.text }}
+                  >
+                    Best Seller
                   </label>
                 </div>
 
@@ -2595,35 +2590,40 @@ export default function Products() {
                   </div>
 
                   {viewProduct.description && (
-                    <div>
-                      <p
-                        className="text-xs uppercase font-semibold mb-1"
-                        style={{ color: themeColors.text }}
-                      >
-                        Description
-                      </p>
-                      <p style={{ color: themeColors.text }}>
-                        {viewProduct.description}
-                      </p>
-                    </div>
+                    <>
+                      <div>
+                        <p
+                          className="text-xs uppercase font-semibold mb-1"
+                          style={{ color: themeColors.text }}
+                        >
+                          Description
+                        </p>
+                        <p style={{ color: themeColors.text }}>
+                          {viewProduct.description}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p
+                          className="text-xs uppercase font-semibold mb-1"
+                          style={{ color: themeColors.text }}
+                        >
+                          Best Seller
+                        </p>
+                        <p
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${
+                            viewProduct.isBestSeller
+                              ? "bg-yellow-500/20 text-yellow-600"
+                              : "bg-gray-500/20 text-gray-500"
+                          }`}
+                        >
+                          {viewProduct.isBestSeller ? "YES" : "NO"}
+                        </p>
+                      </div>
+                    </>
                   )}
 
-                  {viewProduct.about && (
-                    <div>
-                      <p
-                        className="text-xs uppercase font-semibold mb-1"
-                        style={{ color: themeColors.text }}
-                      >
-                        About
-                      </p>
-                      <p
-                        className="text-xs"
-                        style={{ color: themeColors.text }}
-                      >
-                        {viewProduct.about}
-                      </p>
-                    </div>
-                  )}
+
 
                   {(Array.isArray(viewProduct.sizes) &&
                     viewProduct.sizes.length > 0) && (

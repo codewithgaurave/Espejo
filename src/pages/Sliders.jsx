@@ -187,6 +187,7 @@ export default function Sliders() {
       });
     } catch (e) {
       const msg =
+        e?.response?.data?.error ||
         e?.response?.data?.message ||
         e?.message ||
         "Failed to delete slider.";
@@ -245,6 +246,7 @@ export default function Sliders() {
       });
     } catch (e) {
       const msg =
+        e?.response?.data?.error ||
         e?.response?.data?.message ||
         e?.message ||
         "Failed to update slider status.";
@@ -308,6 +310,7 @@ export default function Sliders() {
       await fetchSliders();
     } catch (e) {
       const msg =
+        e?.response?.data?.error ||
         e?.response?.data?.message ||
         e?.message ||
         "Failed to save slider.";
@@ -920,7 +923,7 @@ export default function Sliders() {
                   </label>
                 </div>
 
-                {/* Image picker - nicer design */}
+                {/* Image picker */}
                 <div className="md:col-span-2">
                   <label
                     htmlFor="sliderImage"
@@ -970,15 +973,6 @@ export default function Sliders() {
                         className="w-full max-h-48 object-cover rounded-xl border"
                         style={{ borderColor: themeColors.border }}
                       />
-                      {editing && !imageFile && (
-                        <p
-                          className="text-xs mt-1 opacity-70"
-                          style={{ color: themeColors.text }}
-                        >
-                          Uploading a new image will replace the existing
-                          one.
-                        </p>
-                      )}
                     </div>
                   )}
                 </div>
