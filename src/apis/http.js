@@ -1,8 +1,10 @@
 // src/apis/http.js
 import axios from "axios";
 
+const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://glassadminpanelapi-zvz4.onrender.com";
+
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: VITE_API_BASE_URL,
 });
 
 // Attach token for every request
